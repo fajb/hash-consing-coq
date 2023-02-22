@@ -10,6 +10,6 @@ Notation "'let!' ( x , y ) = c ; d" :=
   (bind c (fun z => match z with ( x , y ) => d end))
   (at level 200, x ident, y ident, c at level 150, d at level 200).
 
-Instance optionMonadOps : MonadOps option :=
-{ retn := Some
+#[export] Instance optionMonadOps : MonadOps option :=
+{ retn := @Some
 ; bind := fun X Y (c: option X) f => match c with Some y => f y | _ => None end}.

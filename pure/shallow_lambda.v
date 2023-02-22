@@ -1,5 +1,5 @@
 Require Import common monads.
-Require Import NArith Omega.
+Require Import NArith Lia.
 
 (* -------------------------------------------------------------------------------- *)
 Inductive term : Type :=
@@ -66,7 +66,7 @@ Require Import minimap.
 Notation tmap := TMap.t.
 
 
-Instance term_minimap_ops A : minimap_ops term A :=
+#[export] Instance term_minimap_ops A : minimap_ops term A :=
   {| 
     content := @TMap.t A;
     set := @TMap.add A;
@@ -74,21 +74,21 @@ Instance term_minimap_ops A : minimap_ops term A :=
     empty := @TMap.empty A
   |}. 
 
-Instance term_minimap_gempty A : minimap_gempty  (term_minimap_ops A).
+#[export] Instance term_minimap_gempty A : minimap_gempty  (term_minimap_ops A).
 Proof. constructor. Qed. 
 
 Definition equiv x y :=  T.compare x y = Eq. 
-Instance equiv_sym : Symmetric equiv. intros x y.   apply TMap.E.eq_sym. Qed.
-Instance equiv_trans : Transitive equiv. intros x y z.   apply TMap.E.eq_trans. Qed.
+#[export] Instance equiv_sym : Symmetric equiv. intros x y.   apply TMap.E.eq_sym. Qed.
+#[export] Instance equiv_trans : Transitive equiv. intros x y z.   apply TMap.E.eq_trans. Qed.
 
-Instance term_equiv : EquivDec term equiv. 
+#[export] Instance term_equiv : EquivDec term equiv.
 Proof. 
   repeat intro. unfold equiv.  destruct (T.compare x y); auto;  right; discriminate. 
 Qed. 
 
 Infix "==" := (equiv) (at level 80). 
 
-Instance term_minimap_props A : minimap_eq_props _ term_equiv (term_minimap_ops A).
+#[export] Instance term_minimap_props A : minimap_eq_props _ term_equiv (term_minimap_ops A).
 Proof.
   constructor.
   - intros. apply TMapFacts.add_eq_o. apply TMap.E.eq_sym; auto.
@@ -194,7 +194,7 @@ Section lifti.
                              (r,upd_lifti (n,ident t,k) r st)
                          end
         end eq_refl);
-    abstract (unfold ltof; destruct arg as [[? ?] ?]; unfold measure; simpl; injection Harg; intros; subst;  simpl; auto with arith).  
+    abstract (unfold Wf_nat.ltof; destruct arg as [[? ?] ?]; unfold measure; simpl; injection Harg; intros; subst;  simpl; auto with arith).
   Defined.
   Definition lifti (n: N) : term -> N -> state -> term * state := 
     fun t k st => @Fixm _ (term * state) measure (lifti_rec n) (t,k,st).
@@ -232,7 +232,7 @@ Section substi.
                              in
                              (r,upd_substi (ident w,ident t,n) r st)
                          end
-              end eq_refl); abstract   (unfold ltof; destruct arg as [[? ?] ?]; unfold measure; simpl; injection Harg; intros; subst; simpl; auto with arith). 
+              end eq_refl); abstract   (unfold Wf_nat.ltof; destruct arg as [[? ?] ?]; unfold measure; simpl; injection Harg; intros; subst; simpl; auto with arith).
     Defined. 
   Definition substi (w: term) : term -> N -> state -> term * state :=
     fun t k st =>
@@ -348,7 +348,7 @@ Inductive wf_term_rec st : term -> Prop :=
                   wf_term st t  ->
                   wf_term_rec st (Abs t p).
 
-Hint Constructors wf_term_rec.
+#[export] Hint Constructors wf_term_rec.
 
 Record wf_hashcons (h:hashcons) : Prop :=
   {
@@ -366,7 +366,7 @@ Record wf_hashcons (h:hashcons) : Prop :=
     wf_term_hered:forall t, wf_term h t -> 
                        wf_term_rec h t
   }.
-Hint Constructors wf_hashcons. 
+#[export] Hint Constructors wf_hashcons.
 (* ---------------------------------------- *)
 (*  *)
 
@@ -389,20 +389,20 @@ Record wf_memo (st:state): Prop :=
     wf_memo_hnf : wf_hnf st;
     wf_memo_nf : wf_nf st
   }.
-Hint Resolve wf_memo_lifti wf_memo_substi wf_memo_hnf wf_memo_nf.
+#[export] Hint Resolve wf_memo_lifti wf_memo_substi wf_memo_hnf wf_memo_nf.
 
 Record wf_state (st:state) : Prop :=
   {
     wf_st_hashcons : wf_hashcons st;
     wf_st_memo : wf_memo st
   }.
-Hint Resolve wf_st_hashcons wf_st_memo.
+#[export] Hint Resolve wf_st_hashcons wf_st_memo.
 
 Lemma wf_get_eq st e e' : wf_state st -> get e (hmap st) = Some e' -> e == e'.
 Proof. intros. apply wf_get_wf_eq in H0; intuition auto. Qed.
 Lemma wf_get_wf st e e' : wf_state st -> get e (hmap st) = Some e' -> wf_term st e'.
 Proof. intros. apply wf_get_wf_eq in H0; intuition auto. Qed.
-Hint Resolve wf_get_eq wf_get_wf. 
+#[export] Hint Resolve wf_get_eq wf_get_wf.
 
 (* ---------------------------------------- *)
 (* Boilerplate properties of incr *)
@@ -411,26 +411,26 @@ Record incr (h1 h2 : hashcons) : Prop := {
   incr_wf_term: forall e, wf_term h1 e -> wf_term h2 e
 }.
 
-Hint Resolve incr_lt incr_wf_term.
-Hint Constructors incr.
+#[export] Hint Resolve incr_lt incr_wf_term.
+#[export] Hint Constructors incr.
 
 Lemma incr_refl st : incr st st.
 Proof. constructor. reflexivity. eauto. Qed.
-Hint Immediate incr_refl.
+#[export] Hint Immediate incr_refl.
 
 
 Lemma incr_trans  a b c : incr a b -> incr b c -> incr a c.
-Proof. destruct 1, 1. constructor.  zify; omega.  eauto. Qed.
+Proof. destruct 1, 1. constructor.  lia.  eauto. Qed.
 
 (* ---------------------------------------- *)
 (* Properties of equiv *)
 Lemma equiv_tag : forall e e' p, e == e' -> e == tag e' p. 
 Proof. intros; destruct e'; simpl in *; eauto. Qed.
-Hint Resolve equiv_tag : equiv.
+#[export] Hint Resolve equiv_tag : equiv.
 
 Lemma get_equiv st t t': wf_state st -> get t (hmap st) = Some t' -> t == t'.
 Proof. intros. apply wf_get_wf_eq in H0; intuition eauto. Qed. 
-Hint Resolve get_equiv:equiv.
+#[export] Hint Resolve get_equiv:equiv.
 
 Ltac inject H :=
   generalize tt; injection H; clear H;
@@ -442,7 +442,7 @@ Ltac inject H :=
 Arguments set _ _ _ _ _ _  : simpl never. 
 Arguments get  _ _ _ _ _  : simpl never. 
 
-Ltac zomega := zify; omega.
+Ltac zomega := lia.
 
 (* ---------------------------------------- *)
 (* properties of wb *)
@@ -460,7 +460,9 @@ Proof.
   unfold wb.
   intros.
   destruct m as [].
-  edestruct H as [? []]; eauto. edestruct H0 as [? []]; intuition eauto. zify; omega. 
+  edestruct H as [? []]; eauto.
+  eapply H0 in H4; intuition eauto.
+  eapply incr_trans; eauto.
 Qed.
 
 Lemma wb_impl alpha:
@@ -496,8 +498,8 @@ Qed.
 
 (* ---------------------------------------- *)
 
-Hint Extern 20 => zomega.
-Hint Extern 19 =>
+#[export] Hint Extern 20 => zomega.
+#[export] Hint Extern 19 =>
 (match goal with
    | H: get ?x _ = Some ?x |- _ => apply wf_lt_next in H; simpl in *
  end) : equiv.
@@ -522,15 +524,15 @@ Lemma tag_refl : forall e p, tag e p == e.
 Proof.  
   unfold equiv; intros e p.  destruct e; simpl; rewrite ?N.compare_refl, ?Pos.compare_refl; eauto. 
 Qed. 
-Hint Resolve tag_refl: equiv. 
+#[export] Hint Resolve tag_refl: equiv.
 
     
-Hint Extern 10 => match goal with 
+#[export] Hint Extern 10 => match goal with
                    | H: context [ident (tag ?e ?p)] |- _ => rewrite (ident_tag e p) in H
                   | |- context [ident (tag ?e ?p)]  => rewrite (ident_tag e p) 
                  end : equiv.
 
-Hint Extern 5 (_ <= _)%positive => simpl.
+#[export] Hint Extern 5 (_ <= _)%positive => simpl.
 Lemma incr_wf_term_rec : forall (st st': hashcons) t, incr st st' ->
                                                  wf_hashcons st ->
                                                  wf_term_rec st t ->
@@ -539,7 +541,7 @@ Proof.
   intros. 
   induction t;constructor;  inversion H1; subst;eauto. 
 Qed.
-Hint Resolve incr_wf_term_rec. 
+#[export] Hint Resolve incr_wf_term_rec.
         
 Lemma upd_correct  e st : wf_state st ->
                           get e (hmap st) = None ->

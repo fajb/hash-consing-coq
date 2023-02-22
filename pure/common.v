@@ -94,12 +94,12 @@ Ltac simpl_do :=
       | H : ?x = Some ?y |- context [?x] => rewrite H
     end. 
 
-Ltac intro_do n H :=
+(*Ltac intro_do n H :=
   match goal with 
     | |- context [do _ <- ?x; _] =>
       destruct x as [n|] eqn:H; simpl 
   end.
-
+*)
 
 (** The dependent type swiss-knife. *)
 Ltac injectT :=  subst; repeat match goal with 
@@ -118,7 +118,7 @@ Ltac injectT :=  subst; repeat match goal with
 Ltac inject H :=
       injection H; clear H; intros; subst. 
 
-Require Import BinPos Omega.
+Require Import BinPos BinNat Lia.
 
 Lemma positive_strong_ind:
   forall (P:positive->Prop),
@@ -128,14 +128,15 @@ Proof.
   intros P HP.
   assert (forall n m, (m < n)%positive -> P m).
   induction n using Pos.peano_ind; intros.
-  zify; omega.
+  lia.
   apply HP. intros.
-  apply IHn. zify; omega.
-  intros. apply (H (Psucc n)).
-  zify; omega.
+  apply IHn. lia.
+  intros. apply (H (Pos.succ n)).
+  lia.
 Qed.
 
 (** missing lemmas from the stdlib  *)
+
 Lemma N_compare_sym: forall x y, N.compare y x = CompOpp (N.compare x y). 
 Proof. intros. rewrite Ncompare_antisym. auto. Qed.
 
@@ -147,19 +148,19 @@ Lemma N_compare_trans x y z c :
 Proof.
   destruct c.
   intros; rewrite N.compare_eq_iff in * |- *. congruence. 
-  intros; rewrite N.compare_lt_iff in * |- *. zify.  omega.
-  intros; rewrite N.compare_gt_iff in * |- *. zify.  omega.
+  intros; rewrite N.compare_lt_iff in * |- *. lia.
+  intros; rewrite N.compare_gt_iff in * |- *. lia.
 Qed. 
 
 Lemma Pos_compare_trans: forall c x y z, Pos.compare x y = c -> Pos.compare y z = c -> Pos.compare x z = c.
 Proof. 
   destruct c.
   intros; rewrite Pos.compare_eq_iff in * |- *. congruence. 
-  intros; rewrite Pos.compare_lt_iff in * |- *. zify.  omega.
-  intros; rewrite Pos.compare_gt_iff in * |- *. zify.  omega.
+  intros; rewrite Pos.compare_lt_iff in * |- *. lia.
+  intros; rewrite Pos.compare_gt_iff in * |- *. lia.
 Qed. 
 
-Hint Resolve N_compare_sym N_compare_trans Pos_compare_sym Pos_compare_trans : compare. 
+#[export] Hint Resolve N_compare_sym N_compare_trans Pos_compare_sym Pos_compare_trans : compare.
 
 (** Boilerplate definitions for FMaps. *)
 Require Export FMapPositive FMapAVL OrderedTypeAlt.
@@ -336,9 +337,8 @@ of well-foundedness with 2^n Acc constructors *)
      | S n => fun x => Acc_intro x (fun y _ => guard _ _ n (guard _ _ n wfR) y) 
    end.
 
-
 Definition wf A f :=
-  guard _ _ 512 (well_founded_ltof A f).
+  guard _ _ 512 (Wf_nat.well_founded_ltof A f).
 
 (* slight adaptation of Leroy's Wfsimpl.v in Compcert  *)
 Require Import FunctionalExtensionality. 
@@ -372,7 +372,7 @@ Section FIXM.
   Variable measure: A -> nat.
   Variable F: forall (x: A), (forall (y: A), measure y < measure x -> B) -> B.
   
-  Definition Fixm (x: A) : B := Wf.Fix (guard _ _ 512 (well_founded_ltof A measure)) (fun (x: A) => B) F x.
+  Definition Fixm (x: A) : B := Wf.Fix (guard _ _ 512 (Wf_nat.well_founded_ltof A measure)) (fun (x: A) => B) F x.
   
   Theorem Fixm_eq:
     forall x, Fixm x = F (fun (y: A) (P: measure y < measure x) => Fixm y).
@@ -388,8 +388,8 @@ Section FIXM.
     forall x, P (Fixm x).
   Proof. 
     intros. 
-    induction x using (well_founded_induction_type (well_founded_ltof _ measure)).
-    apply X. intros. apply X0. unfold ltof. eauto. 
+    induction x using (well_founded_induction_type (Wf_nat.well_founded_ltof _ measure)).
+    apply X. intros. apply X0. unfold Wf_nat.ltof. eauto.
   Qed.  
 
     

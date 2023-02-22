@@ -2,7 +2,7 @@
 a deep-embedding of the memory as finite maps, and using integers as
 surrogates of pointers. *)
 
-Require Import common ZArith.
+Require Import common ZArith Lia.
 
 Ltac sep :=
   repeat match goal with
@@ -76,7 +76,7 @@ Module N <: OrderedTypeAlt.
   Qed.
 
 
-  Hint Resolve expr_compare_trans expr_compare_sym.
+  #[export] Hint Resolve expr_compare_trans expr_compare_sym.
 
   Lemma compare_sym x y :compare y x = CompOpp (compare x y).
   Proof.
@@ -108,6 +108,13 @@ Module N <: OrderedTypeAlt.
     rewrite Pos.compare_eq_iff. reflexivity.
   Qed.
 
+    Lemma expr_compare_eq a b: expr_compare a b = Eq -> a = b.
+    Proof.
+      destruct a ; destruct b; simpl; intros; subst;  try discriminate; try reflexivity.
+      rewrite Pos.compare_eq_iff in H. subst. auto.
+    Qed.
+
+
   Lemma compare_eq_iff n1 n2 : N.compare n1 n2 = Eq <-> n1 = n2.
   Proof.
     split; intros.
@@ -117,11 +124,6 @@ Module N <: OrderedTypeAlt.
     destruct (expr_compare a a') eqn: H1; try discriminate.
     rewrite Pos.compare_eq_iff in H. subst.
     simpl in H3.
-    Lemma expr_compare_eq a b: expr_compare a b = Eq -> a = b.
-    Proof.
-      destruct a ; destruct b; simpl; intros; subst;  try discriminate; try reflexivity.
-      rewrite Pos.compare_eq_iff in H. subst. auto.
-    Qed.
     apply expr_compare_eq in H1. apply expr_compare_eq in H3. subst; reflexivity.
     subst. apply compare_refl.
   Qed.
@@ -218,12 +220,12 @@ Inductive wf_expr st : var -> expr -> Prop :=
                              (v < v')%positive ->
                              wf_expr st v' (N x).
 
-Hint Constructors wf_expr.
+#[export] Hint Constructors wf_expr.
 
 Lemma wf_expr_lt:
   forall b v v' e, wf_expr b v e -> (v < v')%positive -> wf_expr b v' e.
 Proof.
-  destruct 1; econstructor. eauto. zify; omega.
+  destruct 1; econstructor. eauto. lia.
 Qed.
 
 Record wf_hashcons (b : hashcons) : Prop :=
@@ -240,9 +242,9 @@ Record wf_hashcons (b : hashcons) : Prop :=
                  l <> h
   }.
 
-Hint Resolve <- wf_bijection.
-Hint Resolve -> wf_bijection.
-Hint Resolve wf_map_wf_expr_h wf_map_wf_expr_l wf_expr_lt_next.
+#[export] Hint Resolve <- wf_bijection.
+#[export] Hint Resolve -> wf_bijection.
+#[export] Hint Resolve wf_map_wf_expr_h wf_map_wf_expr_l wf_expr_lt_next.
 
 Notation find env v := (PositiveMap.find v env).
 
@@ -254,7 +256,7 @@ Inductive value env (st : hashcons) : expr -> bool -> Prop :=
                forall (vv: bool), find env v = Some vv ->
                forall vhl : bool, value env st (if vv then h else l) vhl ->
                                   value env st (N p) vhl.
-Hint Constructors value.
+#[export] Hint Constructors value.
 
 Lemma wf_expr_value:
   forall env st e v, value env st e v ->
@@ -263,7 +265,7 @@ Proof.
   destruct 1; try (exists 1%positive; now eauto).
   exists (v+1)%positive.
   econstructor. eauto.
-  zify; omega.
+  lia.
 Qed.
 
 Definition node_opb_rel opb st na nb res st' :=
@@ -282,7 +284,7 @@ Record wf_memo2 (b: hashcons) (m: memo2) (opb : bool -> bool -> bool):=
                                  node_opb_rel opb b (N x) (N y) res b
   }.
 
-Hint Resolve
+#[export] Hint Resolve
      wf_memo2_find_wf_res
      wf_memo2_find_wf
      wf_memo2_find_sem.
@@ -298,7 +300,7 @@ Record wf_memo_neg (b: hashcons) (m: memo1):=
                                          value env b res (Datatypes.negb va)
   }.
 
-Hint Resolve
+#[export] Hint Resolve
      wf_memo_neg_find_wf_res
      wf_memo_neg_find_wf
      wf_memo_neg_find_sem.
@@ -317,7 +319,7 @@ Record wf_st (b:state) : Prop :=
     wf_st_memo : wf_memo b
   }.
 
-Hint Resolve wf_st_hashcons wf_st_memo.
+#[export] Hint Resolve wf_st_hashcons wf_st_memo.
 
 (** The evolution of sts is monotonic  *)
 Record incr (b1 b2 : hashcons) : Prop := {
@@ -326,20 +328,20 @@ Record incr (b1 b2 : hashcons) : Prop := {
       forall p x, PMap.find p (graph b1) = Some x -> PMap.find p (graph b2) = Some x
 }.
 
-Hint Resolve incr_lt incr_find.
-Hint Constructors incr.
+#[export] Hint Resolve incr_lt incr_find.
+#[export] Hint Constructors incr.
 
 Lemma incr_refl st : incr st st.
 Proof.
   constructor. reflexivity. eauto.
 Qed.
 
-Hint Resolve incr_refl.
+#[export] Hint Resolve incr_refl.
 
 Lemma incr_trans  a b c : incr a b -> incr b c -> incr a c.
 Proof.
   destruct 1, 1. constructor.
-  zify; omega.
+  lia.
   eauto.
 Qed.
 
@@ -352,7 +354,7 @@ Proof.
   destruct 1; eauto.
 Qed.
 
-Hint Resolve wf_expr_incr.
+#[export] Hint Resolve wf_expr_incr.
 
 Definition wbo {alpha} (st:state) f P :=
   forall (st': state) (out:alpha),
@@ -369,7 +371,7 @@ Proof.
   intros. edestruct H0; eauto.
 Qed.
 
-Hint Resolve wbo_wf.
+#[export] Hint Resolve wbo_wf.
 
 Lemma wbo_incr alpha:
   forall st f P,
@@ -382,7 +384,7 @@ Proof.
   intros. edestruct H0 as [_ []]; eauto using incr_trans.
 Qed.
 
-Hint Resolve wbo_incr.
+#[export] Hint Resolve wbo_incr.
 
 Lemma wbo_bind alpha beta:
   forall st f g P Q,
@@ -410,7 +412,7 @@ Proof.
   intros. inject H1; eauto.
 Qed.
 
-Hint Resolve wb_ret.
+#[export] Hint Resolve wb_ret.
 
 Lemma wb_wf alpha:
   forall st f P,
@@ -422,7 +424,7 @@ Proof.
   intros. eapply wbo_wf; eauto. simpl. f_equal. eauto.
 Qed.
 
-Hint Resolve wb_wf.
+#[export] Hint Resolve wb_wf.
 
 Lemma wb_incr alpha:
   forall st f P,
@@ -435,7 +437,7 @@ Proof.
   intros. eapply wbo_incr; eauto. simpl. f_equal. eauto.
 Qed.
 
-Hint Resolve wb_incr.
+#[export] Hint Resolve wb_incr.
 
 Lemma wb_bind alpha beta:
   forall st f g P Q,
@@ -468,7 +470,7 @@ Proof.
   induction 1; auto.
   econstructor; eauto.
 Qed.
-Hint Resolve value_incr.
+#[export] Hint Resolve value_incr.
 
 Lemma value_rcni: forall env e va st',
                       value env st' e va ->
@@ -488,7 +490,7 @@ Proof.
   destruct vv; eauto.
 Qed.
 
-Hint Resolve value_rcni.
+#[export] Hint Resolve value_rcni.
 
 Lemma wf_expr_rcni: forall st st' e v v',
                       wf_expr st v e ->
@@ -570,12 +572,12 @@ Proof.
   unfold upd. intros st l v h Hst Hl Hh HNone Hreduced st' n Heq.
   inject Heq.
   match goal with |- _ /\ ?P /\ _ => assert (Hincr:P) end.
-  { constructor. simpl. zify; omega.
+  { constructor. simpl. lia.
     simpl. intros p x Hfind. rewrite PMap.gso. eauto.
     assert (p < next st)%positive.
-    destruct x as [[l' v'] h']. apply wf_expr_lt_next with (v:=Psucc v'). auto.
-    econstructor. eauto. zify; omega.
-    zify; omega.
+    destruct x as [[l' v'] h']. apply wf_expr_lt_next with (v:=Pos.succ v'). auto.
+    econstructor. eauto. lia.
+    lia.
   }
   match goal with |- _ ?st' /\ _ /\ _ => assert (Hwf':wf_hashcons st') end.
   { constructor; simpl.
@@ -588,16 +590,16 @@ Proof.
         destruct (PMap.E.eq_dec (next st) p).
         * split. intro.
           assert (p < next st)%positive.
-          destruct n as [[l' v'] h']. apply wf_expr_lt_next with (v:=Psucc v'). auto.
-          econstructor. eauto. zify; omega.
-          exfalso. zify; omega.
+          destruct n as [[l' v'] h']. apply wf_expr_lt_next with (v:=Pos.succ v'). auto.
+          econstructor. eauto. lia.
+          exfalso. lia.
           congruence.
         * tauto.
     - intros p v' Hwf. destruct (Pos.eq_dec p (next st)).
-      + zify; omega.
+      + lia.
       + inversion Hwf. simpl in H0. rewrite PMap.gso in H0 by trivial.
         assert (p < next st)%positive by eauto.
-        zify; omega.
+        lia.
     - intros p x v' y Hfind.
       destruct (Pos.eq_dec p (next st)).
       + subst. rewrite PMap.gss in Hfind. inject Hfind.
@@ -681,7 +683,7 @@ Proof.
       split; econstructor; eauto.
 Qed.
 
-Hint Resolve wb_mk_node.
+#[export] Hint Resolve wb_mk_node.
 
 Section t.
   Section operations.
@@ -970,10 +972,10 @@ Section t.
         destruct (p1 <=? p2)%positive eqn:?; destruct (p3 <=? p4)%positive eqn:?;
           rewrite ?Pos.leb_le , ?Pos.leb_gt in *;
           repeat
-            (try (rewrite ! Pos.max_r in * by (auto || zify; omega));
-             try (rewrite ! Pos.min_l in * by (auto || zify; omega));
-             try (rewrite ! Pos.max_l in * by (auto || zify; omega));
-             try (rewrite ! Pos.min_r in * by (auto || zify; omega))); eauto.
+            (try (rewrite ! Pos.max_r in * by (auto || lia));
+             try (rewrite ! Pos.min_l in * by (auto || lia));
+             try (rewrite ! Pos.max_l in * by (auto || lia));
+             try (rewrite ! Pos.min_r in * by (auto || lia))); eauto.
       Qed.
 
       Lemma memo_add : forall a b v res ,
@@ -1448,11 +1450,11 @@ Proof.
   induction v using positive_strong_ind.
   intros st a Hle Ha Hwf x env va; split; intro Hval.
   + destruct Ha; inversion Hval; econstructor; rewrite H0 in H3; inject H3; eauto.
-    rewrite PMap.gso; eauto. zify; omega.
-    apply -> H; auto. destruct vv; eauto. zify; omega. auto.
+    rewrite PMap.gso; eauto. lia.
+    apply -> H; auto. destruct vv; eauto. lia. auto.
   + destruct Ha; inversion Hval; econstructor; rewrite H0 in H3; inject H3; eauto.
-    rewrite PMap.gso in H4; eauto. zify; omega.
-    apply <- H; auto. eauto. destruct vv; eauto. zify; omega. auto.
+    rewrite PMap.gso in H4; eauto. lia.
+    apply <- H; auto. eauto. destruct vv; eauto. lia. auto.
 Qed.
 
 Lemma value_independent:
@@ -1463,7 +1465,7 @@ Proof.
   intros. eapply value_independent_aux; eauto. reflexivity.
 Qed.
 
-Hint Resolve -> value_independent.
+#[export] Hint Resolve -> value_independent.
 
 Definition equiv st e1 e2 :=
     (forall env v1 v2, value env st e1 v1 ->  value env st e2 v2 -> v1 = v2).

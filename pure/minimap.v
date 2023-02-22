@@ -1,4 +1,4 @@
-Require Import BinPos BinNums.
+Require Import BinPos BinNums Lia.
 
 Class minimap_ops (A B: Type) :=
   {
@@ -16,7 +16,7 @@ Class minimap_gempty {A B : Type} (M : minimap_ops A B) :=
 
 Class EqDec (A: Type)  := eq_dec: forall (x y: A), {x = y} + {x <> y}.
 
-Instance prod_EqDec (A B:Type) {EA: EqDec A} {EB: EqDec B} : EqDec (A * B).
+#[export] Instance prod_EqDec (A B:Type) {EA: EqDec A} {EB: EqDec B} : EqDec (A * B).
 Proof.
   intros [a b] [c d].
   decide equality.
@@ -36,7 +36,7 @@ Section prod.
   Global Instance minimap_prod C : minimap_ops (A*B) C:=
     {|
       content := A ~> (B~> C);
-      set := fun k v st =>
+      set := fun (k:A*B) v st =>
                let(ka,kb) := k in
                match get ka st with
                  | Some ma =>  set ka (set kb v ma) st
@@ -96,9 +96,10 @@ Require Import ZArith.
 Definition pos_of_N n := match n with N0 => xH | Npos p => (Pos.succ p) end.
 Lemma pos_of_N_inj i : forall j, pos_of_N i = pos_of_N j -> i = j.
 Proof.
-  destruct i; destruct j; simpl; eauto; zify; omega.
+  destruct i; destruct j; simpl; eauto; lia.
 Qed.
 
+#[export]
 Instance minimap_N A : minimap_ops N A :=
   {|
     content := PositiveMap.t A;
@@ -109,17 +110,17 @@ Instance minimap_N A : minimap_ops N A :=
     empty := PositiveMap.empty A
   |}.
 
-Instance minimap_N_gempty C : minimap_gempty (minimap_N C).
+#[export] Instance minimap_N_gempty C : minimap_gempty (minimap_N C).
 Proof.
   unfold minimap_gempty. intros [|i]; try easy. apply PositiveMap.gempty.
 Qed.
 
-Instance EqDec_N : EqDec N.
+#[export] Instance EqDec_N : EqDec N.
 Proof.
   unfold EqDec. decide equality. apply Pos.eq_dec.
 Qed.
 
-Instance minimap_N_props C : minimap_props _ (minimap_N C).
+#[export] Instance minimap_N_props C : minimap_props _ (minimap_N C).
 Proof.
   constructor; unfold get, set; simpl; intros.
   apply PositiveMap.gss.
@@ -128,7 +129,7 @@ Proof.
   eapply pos_of_N_inj; eauto.
 Qed.
 
-Instance minimap_pos A : minimap_ops positive A :=
+#[export] Instance minimap_pos A : minimap_ops positive A :=
   {|
     content := PositiveMap.t A;
     set := fun k v st =>
@@ -138,12 +139,12 @@ Instance minimap_pos A : minimap_ops positive A :=
     empty := PositiveMap.empty A
   |}.
 
-Instance minimap_pos_gempty C : minimap_gempty (minimap_pos C).
+#[export] Instance minimap_pos_gempty C : minimap_gempty (minimap_pos C).
 Proof.  unfold minimap_gempty. apply PositiveMap.gempty. Qed.
 
-Instance EqDec_pos : EqDec positive. exact Pos.eq_dec. Qed.
+#[export] Instance EqDec_pos : EqDec positive. exact Pos.eq_dec. Qed.
 
-Instance minimap_pos_props C : minimap_props _ (minimap_pos C).
+#[export] Instance minimap_pos_props C : minimap_props _ (minimap_pos C).
 Proof.
   constructor. intros. apply PositiveMap.gss.
   intros. apply PositiveMap.gso; eauto.
