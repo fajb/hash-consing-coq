@@ -555,7 +555,7 @@ Proof.
   match goal with
       |- _ /\ ?P /\ _ => assert (Hincr: P) 
   end.
-  { intuition. unfold wf_term in *. simpl.  casesR.  rewrite <- e1 in Hg. congruence. eauto. }
+  { constructor;intuition. unfold wf_term in *. simpl.  casesR.  rewrite <- e1 in Hg. congruence. eauto. }
   split; [| split;[easy|split]].  
 
   - constructor. 
@@ -596,7 +596,7 @@ Lemma mk_term_correct t (st: state) :
   wb st (mk_term t st) (fun t' st' => t' == t /\ wf_term st' t').
 Proof.
   unfold mk_term.                     
-  destruct (get t (hmap st)) eqn:Hg. 
+  destruct (@get term term (term_minimap_ops term) t (hmap (to_hashcons st))) eqn:Hg. 
   - intros. apply wb_ret. eauto. split; equiv.  
   - intros.   eapply upd_correct; eauto. 
 Qed.
@@ -629,7 +629,7 @@ Proof.
   simpl; tauto.
 Qed.
 
-Hint Resolve mk_App_correct mk_Abs_correct mk_Var_correct.
+#[export] Hint Resolve mk_App_correct mk_Abs_correct mk_Var_correct.
 
 Ltac cases :=
   repeat match goal with
@@ -669,7 +669,7 @@ Proof.
   intros.   apply wf_term_hered in H;eauto.   inversion H; subst; eauto. 
 Qed. 
 
-Hint Resolve wf_term_Abs_inv wf_term_App_inv1 wf_term_App_inv2. 
+#[export] Hint Resolve wf_term_Abs_inv wf_term_App_inv1 wf_term_App_inv2. 
 
 (* ---------------------------------------- *)
 (* memo lifti *)
@@ -698,7 +698,7 @@ Lemma lifti_rec_correct n :
           (Fixm (fun n0 : term * N * state => size (fst (fst n0))) (lifti_rec n) x)
           (fun (t' : term) (st' : state) => wf_term st' t').
 Proof.
-  induction x using (well_founded_induction_type (well_founded_ltof _ (fun x => (size (fst (fst x)) )) )).  
+  induction x using (well_founded_induction_type (Wf_nat.well_founded_ltof _ (fun x => (size (fst (fst x)) )) )).  
   intros. 
   destruct x as [[t' i'] st']. inject H0. 
   rewrite Fixm_eq. 
@@ -717,18 +717,18 @@ Proof.
       eapply wb_upd_lifti; intuition eauto. 
       
     + eapply wb_bind. eapply wb_bind. eapply H.
-      unfold ltof. simpl. eauto with arith. 
+      unfold Wf_nat.ltof. simpl. eauto with arith. 
       reflexivity. 
       eauto. eauto. 
 
       intros. eapply wb_bind. eapply H. 
-      unfold ltof. simpl. eauto with arith. 
+      unfold Wf_nat.ltof. simpl. eauto with arith. 
       reflexivity. 
       eauto. eauto. 
 
       intros. eauto. 
       intros. eapply wb_upd_lifti; eauto. 
-    + eapply wb_bind. eapply wb_bind. eapply H. unfold ltof. simpl. eauto with arith. 
+    + eapply wb_bind. eapply wb_bind. eapply H. unfold Wf_nat.ltof. simpl. eauto with arith. 
       reflexivity. 
       eauto. 
       eauto. 
@@ -770,7 +770,7 @@ Lemma substi_rec_correct w :
           (Fixm (fun n0 : term * N * state => size (fst (fst n0))) (substi_rec w) x)
           (fun (t' : term) (st' : state) => wf_term st' t').
 Proof.  
-  induction x using (well_founded_induction_type (well_founded_ltof _ (fun x => (size (fst (fst x)) )) )).  
+  induction x using (well_founded_induction_type (Wf_nat.well_founded_ltof _ (fun x => (size (fst (fst x)) )) )).  
   intros. 
   destruct x as [[t' i'] st']. inject H0. 
   rewrite Fixm_eq. 
@@ -790,18 +790,18 @@ Proof.
       simpl in H0. 
       destruct (n <? i)%N; eapply wb_upd_substi; intuition eauto.        
     + eapply wb_bind. eapply wb_bind. eapply H.
-      unfold ltof. simpl. eauto with arith. 
+      unfold Wf_nat.ltof. simpl. eauto with arith. 
       reflexivity. 
       eauto. eauto. eauto.  
 
       intros. eapply wb_bind. eapply H. 
-      unfold ltof. simpl. eauto with arith. 
+      unfold Wf_nat.ltof. simpl. eauto with arith. 
       reflexivity. 
       eauto. eauto. eauto. 
 
       intros. eauto. 
       intros. eapply wb_upd_substi. eauto. eauto.  
-    + eapply wb_bind. eapply wb_bind. eapply H. unfold ltof. simpl. eauto with arith. 
+    + eapply wb_bind. eapply wb_bind. eapply H. unfold Wf_nat.ltof. simpl. eauto with arith. 
       reflexivity. 
       eauto. 
       eauto.
@@ -852,7 +852,7 @@ Lemma wbo_bind alpha beta st (m:option (alpha * state)):
 Proof.
   unfold wbo; intros.
   destruct (m) as [[]|]; try discriminate. 
-  edestruct H as [? []]; eauto. edestruct H0 as [? []];intuition  eauto. 
+  edestruct H as [? []]; eauto. eapply H0 in H4; eauto. intuition  eauto. eapply incr_trans;eauto.
 Qed.
 
 Lemma wbo_wb_bind alpha beta st (m: (alpha * state)):
@@ -864,7 +864,7 @@ Lemma wbo_wb_bind alpha beta st (m: (alpha * state)):
 Proof.
   unfold wbo; intros.
   destruct (m) as []; try discriminate. 
-  edestruct H as [? []]; eauto. edestruct H0 as [? []];intuition  eauto. 
+  edestruct H as [? []]; eauto. eapply H0 in H4 ;intuition  eauto. eapply incr_trans;eauto.
 Qed.
 
 Lemma wbo_wb alpha:
@@ -876,7 +876,7 @@ Proof.
   unfold wbo.
   intros. inject H1; eauto.
 Qed.
-Hint Resolve wbo_wb. 
+#[export]Hint Resolve wbo_wb. 
 
 Lemma wbo_ret alpha:
   forall (a:alpha) (st:state) (P: alpha -> state -> Prop),
@@ -887,7 +887,7 @@ Proof.
   unfold wbo.
   intros. inject H1; eauto.
 Qed.
-Hint Resolve wbo_ret. 
+#[export]Hint Resolve wbo_ret. 
 
   
 Lemma hnf_correct: forall fuel t (st:state),

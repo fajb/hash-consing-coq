@@ -166,6 +166,8 @@ Qed.
 Require Export FMapPositive FMapAVL OrderedTypeAlt.
 Require Export FMapFacts. 
 
+
+
 Module PMap := PositiveMap.
 Module PMapFacts := FMapFacts.Facts(PMap).
 
@@ -249,10 +251,11 @@ Module PPMapFacts := FMapFacts.Facts (PPMap).
 
 
 (** Results about lexicographic order *)
+Require Setoid.
 
 Module Compare.
 
-Require Import Setoid. 
+Import Setoid.
 
 Notation lex x y := 
   (match x with 

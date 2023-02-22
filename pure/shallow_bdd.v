@@ -167,7 +167,7 @@ with wf_hc_expr st : var -> hc_expr -> Prop :=
                wf_expr st v e ->
                wf_hc_expr st v (HC e id).
 
-#[export] Hint Constructors wf_expr wf_hc_expr.
+#[export] Hint Constructors wf_expr wf_hc_expr : core.
 
 Lemma wf_hc_expr_le:
   forall b v v' e, wf_hc_expr b v e -> (v <= v')%positive ->
@@ -193,7 +193,7 @@ Record wf_hashcons (b:hashcons) : Prop :=
                            exists v, wf_hc_expr b v e'
   }.
 
-#[export] Hint Resolve wf_expr_lt_next wf_find_wf_hc_expr.
+#[export] Hint Resolve wf_expr_lt_next wf_find_wf_hc_expr : core.
 
 Notation find env v := (PositiveMap.find v env).
 
@@ -204,7 +204,7 @@ Inductive value env : expr -> bool -> Prop :=
                forall (vv: bool), find env v = Some vv ->
                forall vhl : bool, value env (if vv then h else l) vhl ->
                                   value env (N l v h) vhl.
-#[export] Hint Constructors value.
+#[export] Hint Constructors value : core.
 
 Definition node_opb_rel opb (na nb res:expr) :=
   forall env va vb, value env na va ->
@@ -228,7 +228,7 @@ Record wf_memo2 (b: hashcons) (m: memo2) (opb : bool -> bool -> bool) :=
         exists ey v, wf_hc_expr b v (HC ey y)
   }.
 
-#[export] Hint Resolve wf_memo2_wf_res wf_memo2_wfx wf_memo2_wfy.
+#[export] Hint Resolve wf_memo2_wf_res wf_memo2_wfx wf_memo2_wfy : core.
 
 Record wf_memo_neg  (b: hashcons) (m: memo1) :=
   { wf_memo_neg_wf_res:
@@ -244,7 +244,7 @@ Record wf_memo_neg  (b: hashcons) (m: memo1) :=
         exists ex v, wf_hc_expr b v (HC ex x)
   }.
 
-#[export] Hint Resolve wf_memo_neg_wf_res wf_memo_neg_wfx.
+#[export] Hint Resolve wf_memo_neg_wf_res wf_memo_neg_wfx : core.
 
 Record wf_memo (b: state) :=
   {
@@ -260,7 +260,7 @@ Record wf_st (b:state) : Prop :=
     wf_st_memo : wf_memo b
   }.
 
-#[export] Hint Resolve wf_st_hashcons wf_st_memo.
+#[export] Hint Resolve wf_st_hashcons wf_st_memo : core.
 
 (** The evolution of sts is monotonic  *)
 Record incr (b1 b2 : hashcons) : Prop := {
@@ -268,15 +268,15 @@ Record incr (b1 b2 : hashcons) : Prop := {
   incr_find: forall e v, wf_hc_expr b1 v e -> wf_hc_expr b2 v e
 }.
 
-#[export] Hint Resolve incr_lt incr_find.
-#[export] Hint Constructors incr.
+#[export] Hint Resolve incr_lt incr_find : core.
+#[export] Hint Constructors incr : core.
 
 Lemma incr_refl st : incr st st.
 Proof.
   constructor. reflexivity. eauto.
 Qed.
 
-#[export] Hint Resolve incr_refl.
+#[export] Hint Resolve incr_refl : core.
 
 Lemma incr_trans  a b c : incr a b -> incr b c -> incr a c.
 Proof.
@@ -294,7 +294,7 @@ Proof.
   destruct 1; eauto.
 Qed.
 
-#[export] Hint Resolve wf_hc_expr_incr.
+#[export] Hint Resolve wf_hc_expr_incr : core.
 
 Lemma wf_expr_incr:
   forall b1 b2 v e,
@@ -305,7 +305,7 @@ Proof.
   destruct 1; eauto.
 Qed.
 
-#[export] Hint Resolve wf_expr_incr.
+#[export] Hint Resolve wf_expr_incr : core.
 
 Definition wb {alpha} (st:state) m P :=
   forall (st': state) (out:alpha),
@@ -322,7 +322,7 @@ Proof.
   intros. edestruct H0; eauto.
 Qed.
 
-#[export] Hint Resolve wb_wf.
+#[export] Hint Resolve wb_wf : core.
 
 Lemma wb_incr alpha:
   forall st m P,
@@ -335,7 +335,7 @@ Proof.
   intros. edestruct H0 as [_ []]; eauto using incr_trans.
 Qed.
 
-#[export] Hint Resolve wb_incr.
+#[export] Hint Resolve wb_incr : core.
 
 Lemma wb_bind alpha beta:
   forall st m f P Q,
@@ -370,7 +370,7 @@ Proof.
   intros. inject H1; eauto.
 Qed.
 
-#[export] Hint Resolve wb_ret.
+#[export] Hint Resolve wb_ret : core.
 
 Definition upd u (b: state) :=
   let r := HC u (next b) in
@@ -621,7 +621,7 @@ Proof.
     rewrite H1. eauto.
 Qed.
 
-#[export] Hint Resolve wb_mk_node.
+#[export] Hint Resolve wb_mk_node : core.
 
 Section t.
   Section operations.
@@ -740,7 +740,7 @@ Section t.
           apply wb_ret; auto.
           eapply Hmemo_get in EQmg; eauto.
         - eapply wb_bind.
-          Focus 2.
+          2:{
             intros; eapply wb_bind.
             change ida with (ident (HC (N la va ha) ida)).
             change idb with (ident (HC (N lb vb hb) idb)).
@@ -750,6 +750,7 @@ Section t.
             intros. simpl in H0.
             eapply wf_hc_expr_incr; eauto.
             eapply H0; eauto 4 using wf_expr_rcni.
+            }
           destruct (Pos.compare_spec va vb).
           + subst. eapply wb_bind; [|intros x ? Hx ? ? ?; eapply wb_bind]; eauto.
             intros y ? Hy ? ? ?. destruct Hx as [Hxwf Hx], Hy as [Hywf Hy].
@@ -1080,7 +1081,7 @@ Section t.
           eauto using wf_hc_expr_rcni.
         - intros. edestruct wf_memo_neg_wf_res0; eauto.
       Qed.
-      Hint Resolve memo1_get.
+      Hint Resolve memo1_get : core.
 
       Lemma wb_mk_not :
         forall v a st,
@@ -1260,7 +1261,7 @@ Proof.
   intros. eapply value_independent_aux; eauto. reflexivity.
 Qed.
 
-#[export] Hint Resolve -> value_independent.
+#[export] Hint Resolve -> value_independent: core.
 
 Definition equiv e1 e2 := (forall env v1 v2, value env e1 v1 -> value env e2 v2 -> v1 = v2).
 
