@@ -1,0 +1,8 @@
+-R . bdd
+common.v
+extraction.v
+minimap.v
+monads.v
+pure_bdd.v
+shallow_bdd.v
+shallow_lambda.v
